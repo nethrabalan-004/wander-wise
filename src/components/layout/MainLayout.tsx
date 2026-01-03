@@ -25,6 +25,7 @@ const navItems = [
   { path: '/trips', label: 'My Trips', icon: Map },
   { path: '/trips/new', label: 'New Trip', icon: Plus },
   { path: '/explore', label: 'Explore', icon: Compass },
+  { path: '/travel-wrap', label: 'Travel Wrap', icon: Plane },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 

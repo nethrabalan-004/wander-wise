@@ -14,7 +14,8 @@ import {
   TrendingUp,
   Plane,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -221,6 +222,29 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Travel Wrap Card */}
+        <Card className="animate-fade-in bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200" style={{ animationDelay: '175ms' }}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-gray-800">2024 Travel Wrap</p>
+                  <p className="text-sm text-gray-600">See your year in wanderlust!</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => navigate('/travel-wrap')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+              >
+                View My Wrap ✨
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Globe Map */}
         <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: '200ms' }}>

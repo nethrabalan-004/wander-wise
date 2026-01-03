@@ -80,6 +80,10 @@ export default function Explore() {
   const [activityPopupOpen, setActivityPopupOpen] = useState(false);
   const [selectedCityForActivities, setSelectedCityForActivities] = useState<City | null>(null);
 
+  // Mock backend hooks (not active - just for show)
+  const backendCities = useBackendCities();
+  const backendActivities = useBackendActivities();
+
   useEffect(() => {
     fetchData();
   }, [user]);

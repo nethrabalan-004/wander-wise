@@ -11,6 +11,7 @@ import CreateTrip from "./pages/CreateTrip";
 import TripBuilder from "./pages/TripBuilder";
 import TripView from "./pages/TripView";
 import Explore from "./pages/Explore";
+import TravelWrap from "./pages/TravelWrap";
 import Settings from "./pages/Settings";
 import SharedTrip from "./pages/SharedTrip";
 import NotFound from "./pages/NotFound";
@@ -58,6 +59,7 @@ function AppRoutes() {
       <Route path="/trips/:tripId/edit" element={<ProtectedRoute><TripBuilder /></ProtectedRoute>} />
       <Route path="/trips/shared/:shareToken" element={<SharedTrip />} />
       <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
+      <Route path="/travel-wrap" element={<ProtectedRoute><TravelWrap /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
