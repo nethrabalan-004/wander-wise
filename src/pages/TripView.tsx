@@ -452,7 +452,10 @@ export default function TripView() {
                                   <span className="font-medium">{activity.activity?.name}</span>
                                 </div>
                                 <span className="text-sm text-muted-foreground">
-                                  ${Number(activity.custom_cost || activity.activity?.estimated_cost || 0).toLocaleString()}
+                                  {stop.city?.country === 'India' 
+                                    ? `₹${Number(activity.custom_cost || activity.activity?.estimated_cost || 0).toLocaleString()}`
+                                    : `$${Number(activity.custom_cost || activity.activity?.estimated_cost || 0).toLocaleString()}`
+                                  }
                                 </span>
                               </div>
                             ))}

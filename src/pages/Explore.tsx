@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { ActivityPopup } from '@/components/activities/ActivityPopup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +75,10 @@ export default function Explore() {
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string | null>(searchParams.get('city'));
+  
+  // Activity popup state
+  const [activityPopupOpen, setActivityPopupOpen] = useState(false);
+  const [selectedCityForActivities, setSelectedCityForActivities] = useState<City | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -280,9 +285,8 @@ export default function Explore() {
                         size="sm" 
                         className="w-full"
                         onClick={() => {
-                          setSelectedCity(city.id);
-                          const tabTrigger = document.querySelector('[data-state="inactive"][value="activities"]') as HTMLElement;
-                          tabTrigger?.click();
+                          setSelectedCityForActivities(city);
+                          setActivityPopupOpen(true);
                         }}
                       >
                         View Activities
@@ -365,7 +369,7 @@ export default function Explore() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <DollarSign className="h-4 w-4" />
-                          <span>${Number(activity.estimated_cost).toLocaleString()}</span>
+                          <span>{activity.city?.country === 'India' ? `₹${Number(activity.estimated_cost).toLocaleString()}` : `$${Number(activity.estimated_cost).toLocaleString()}`}</span>
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Clock className="h-4 w-4" />
@@ -391,6 +395,14 @@ export default function Explore() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Activity Popup */}
+      <ActivityPopup
+        isOpen={activityPopupOpen}
+        onClose={() => setActivityPopupOpen(false)}
+        city={selectedCityForActivities}
+        mode="explore"
+      />
     </MainLayout>
   );
 }

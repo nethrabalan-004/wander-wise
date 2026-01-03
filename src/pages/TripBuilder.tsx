@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { GlobeMap } from '@/components/map/GlobeMap';
+import { ActivityPopup } from '@/components/activities/ActivityPopup';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,8 @@ import {
   MapPin,
   Search,
   ArrowRight,
-  Save
+  Save,
+  Star
 } from 'lucide-react';
 import {
   Command,
@@ -85,6 +87,11 @@ export default function TripBuilder() {
   const [saving, setSaving] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Activity popup state
+  const [activityPopupOpen, setActivityPopupOpen] = useState(false);
+  const [selectedStopForActivities, setSelectedStopForActivities] = useState<TripStop | null>(null);
+  const [existingActivityIds, setExistingActivityIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user || !tripId) return;
@@ -251,6 +258,29 @@ export default function TripBuilder() {
       description: 'Your trip has been updated.',
     });
     navigate(`/trips/${tripId}`);
+  };
+
+  const handleOpenActivityPopup = async (stop: TripStop) => {
+    if (!stop.city) return;
+    
+    // Fetch existing activities for this stop
+    const { data: existingActivities } = await supabase
+      .from('trip_activities')
+      .select('activity_id')
+      .eq('trip_stop_id', stop.id);
+    
+    setExistingActivityIds(existingActivities?.map(a => a.activity_id) || []);
+    setSelectedStopForActivities(stop);
+    setActivityPopupOpen(true);
+  };
+
+  const handleActivitiesSelected = () => {
+    // Refresh the page or update state as needed
+    toast({
+      title: 'Activities Updated',
+      description: 'Activities have been added to your trip.',
+    });
+    setActivityPopupOpen(false);
   };
 
   const markers = stops
@@ -449,6 +479,17 @@ export default function TripBuilder() {
                               </Popover>
                             </div>
                           </div>
+                          <div className="mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => handleOpenActivityPopup(stop)}
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Add Activities
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -476,6 +517,17 @@ export default function TripBuilder() {
           </Card>
         </div>
       </div>
+
+      {/* Activity Popup */}
+      <ActivityPopup
+        isOpen={activityPopupOpen}
+        onClose={() => setActivityPopupOpen(false)}
+        city={selectedStopForActivities?.city || null}
+        tripStopId={selectedStopForActivities?.id}
+        selectedActivityIds={existingActivityIds}
+        onActivitiesSelected={handleActivitiesSelected}
+        mode="trip-edit"
+      />
     </MainLayout>
   );
 }
