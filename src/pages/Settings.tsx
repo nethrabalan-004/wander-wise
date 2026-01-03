@@ -260,25 +260,17 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="mapboxToken">Mapbox Public Token</Label>
+              <Label htmlFor="mapboxToken">Map Configuration (Optional)</Label>
               <Input
                 id="mapboxToken"
                 type="password"
-                placeholder="pk.eyJ1..."
+                placeholder="No longer required - using OpenStreetMap"
                 value={mapboxToken}
                 onChange={(e) => setMapboxToken(e.target.value)}
+                disabled
               />
               <p className="text-xs text-muted-foreground">
-                Get a free token at{' '}
-                <a 
-                  href="https://mapbox.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  mapbox.com
-                </a>
-                {' '}to enable interactive globe visualization
+                Maps now use OpenStreetMap and no longer require a token. This setting is kept for compatibility.
               </p>
             </div>
           </CardContent>

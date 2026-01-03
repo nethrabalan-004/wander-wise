@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Globe, Key } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default markers in Leaflet with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 interface Marker {
   lat: number;
@@ -15,8 +20,8 @@ interface Marker {
 interface GlobeMapProps {
   markers?: Marker[];
   routes?: Array<{ from: [number, number]; to: [number, number] }>;
-  mapboxToken?: string;
-  onTokenSubmit?: (token: string) => void;
+  mapboxToken?: string; // Kept for compatibility but not used
+  onTokenSubmit?: (token: string) => void; // Kept for compatibility but not used
   className?: string;
   interactive?: boolean;
 }
@@ -24,130 +29,64 @@ interface GlobeMapProps {
 export function GlobeMap({ 
   markers = [], 
   routes = [],
-  mapboxToken,
-  onTokenSubmit,
   className = '',
   interactive = true
 }: GlobeMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const [tokenInput, setTokenInput] = useState('');
-  const [showTokenInput, setShowTokenInput] = useState(!mapboxToken);
+  const map = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const routesRef = useRef<L.Polyline[]>([]);
 
-  const handleTokenSubmit = () => {
-    if (tokenInput.trim() && onTokenSubmit) {
-      onTokenSubmit(tokenInput.trim());
-      setShowTokenInput(false);
-    }
+  // Create custom marker icon
+  const createCustomIcon = (color: string = '#2563eb') => {
+    return L.divIcon({
+      html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+      className: 'custom-marker',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
   };
 
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) return;
+    if (!mapContainer.current) return;
 
-    mapboxgl.accessToken = mapboxToken;
-    
-    try {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
-        projection: 'globe',
-        zoom: 1.5,
-        center: [30, 20],
-        pitch: 30,
-      });
+    // Initialize map
+    map.current = L.map(mapContainer.current, {
+      center: [20, 0],
+      zoom: 2,
+      zoomControl: interactive,
+      dragging: interactive,
+      touchZoom: interactive,
+      doubleClickZoom: interactive,
+      scrollWheelZoom: interactive,
+      boxZoom: interactive,
+      keyboard: interactive,
+    });
 
-      if (interactive) {
-        map.current.addControl(
-          new mapboxgl.NavigationControl({
-            visualizePitch: true,
-          }),
-          'top-right'
-        );
-      } else {
-        map.current.scrollZoom.disable();
-        map.current.dragPan.disable();
-        map.current.doubleClickZoom.disable();
-      }
+    // Add tile layer (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+    }).addTo(map.current);
 
-      map.current.on('style.load', () => {
-        map.current?.setFog({
-          color: 'rgb(255, 255, 255)',
-          'high-color': 'rgb(200, 200, 225)',
-          'horizon-blend': 0.2,
-        });
-
-        // Add routes if provided
-        if (routes.length > 0 && map.current) {
-          const routeCoordinates = routes.flatMap(route => [route.from, route.to]);
-          
-          map.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: routeCoordinates
-              }
-            }
-          });
-
-          map.current.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#2563eb',
-              'line-width': 3,
-              'line-opacity': 0.8
-            }
-          });
-        }
-      });
-
-      // Auto-rotation for non-interactive globe
-      if (!interactive) {
-        const secondsPerRevolution = 180;
-        let userInteracting = false;
-
-        function spinGlobe() {
-          if (!map.current) return;
-          
-          const zoom = map.current.getZoom();
-          if (!userInteracting && zoom < 5) {
-            let distancePerSecond = 360 / secondsPerRevolution;
-            const center = map.current.getCenter();
-            center.lng -= distancePerSecond;
-            map.current.easeTo({ center, duration: 1000, easing: (n) => n });
-          }
-        }
-
-        map.current.on('moveend', () => {
-          spinGlobe();
-        });
-
-        spinGlobe();
-      }
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      setShowTokenInput(true);
+    // Add zoom control to top-right if interactive
+    if (interactive && map.current) {
+      map.current.zoomControl.setPosition('topright');
     }
 
     return () => {
+      // Cleanup
       markersRef.current.forEach(marker => marker.remove());
+      routesRef.current.forEach(route => route.remove());
       markersRef.current = [];
+      routesRef.current = [];
       map.current?.remove();
     };
-  }, [mapboxToken, interactive, routes]);
+  }, [interactive]);
 
-  // Add markers when they change
+  // Update markers when they change
   useEffect(() => {
-    if (!map.current || !mapboxToken) return;
+    if (!map.current) return;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
@@ -155,17 +94,10 @@ export function GlobeMap({
 
     // Add new markers
     markers.forEach(markerData => {
-      const el = document.createElement('div');
-      el.className = 'w-4 h-4 rounded-full border-2 border-white shadow-lg cursor-pointer transform transition-transform hover:scale-125';
-      el.style.backgroundColor = markerData.color || '#2563eb';
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([markerData.lng, markerData.lat])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 25 }).setHTML(
-            `<div class="font-semibold text-sm">${markerData.name}</div>`
-          )
-        )
+      const marker = L.marker([markerData.lat, markerData.lng], {
+        icon: createCustomIcon(markerData.color)
+      })
+        .bindPopup(`<div class="font-semibold text-sm">${markerData.name}</div>`)
         .addTo(map.current!);
 
       markersRef.current.push(marker);
@@ -173,39 +105,44 @@ export function GlobeMap({
 
     // Fit bounds if we have markers
     if (markers.length > 1 && map.current) {
-      const bounds = new mapboxgl.LngLatBounds();
-      markers.forEach(m => bounds.extend([m.lng, m.lat]));
-      map.current.fitBounds(bounds, { padding: 50, maxZoom: 5 });
+      const group = new L.FeatureGroup(markersRef.current);
+      map.current.fitBounds(group.getBounds().pad(0.1));
     } else if (markers.length === 1 && map.current) {
-      map.current.flyTo({ center: [markers[0].lng, markers[0].lat], zoom: 4 });
+      map.current.setView([markers[0].lat, markers[0].lng], 6);
     }
-  }, [markers, mapboxToken]);
+  }, [markers]);
 
-  if (showTokenInput || !mapboxToken) {
-    return (
-      <div className={`flex flex-col items-center justify-center bg-muted rounded-lg p-8 ${className}`}>
-        <Globe className="h-16 w-16 text-muted-foreground mb-4 animate-pulse-soft" />
-        <h3 className="font-display text-lg font-semibold mb-2">Enable Interactive Maps</h3>
-        <p className="text-sm text-muted-foreground text-center mb-4 max-w-md">
-          Enter your Mapbox public token to enable the interactive globe visualization.
-          Get one free at <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a>
-        </p>
-        <div className="flex gap-2 w-full max-w-md">
-          <Input
-            type="text"
-            placeholder="pk.eyJ1IjoieW91..."
-            value={tokenInput}
-            onChange={(e) => setTokenInput(e.target.value)}
-            className="flex-1"
-          />
-          <Button onClick={handleTokenSubmit} className="gap-2">
-            <Key className="h-4 w-4" />
-            Save
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Update routes when they change
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Clear existing routes
+    routesRef.current.forEach(route => route.remove());
+    routesRef.current = [];
+
+    // Add new routes
+    routes.forEach(route => {
+      const polyline = L.polyline([
+        [route.from[1], route.from[0]], // Leaflet uses [lat, lng]
+        [route.to[1], route.to[0]]
+      ], {
+        color: '#2563eb',
+        weight: 3,
+        opacity: 0.8,
+      }).addTo(map.current!);
+
+      routesRef.current.push(polyline);
+    });
+
+    // Fit bounds to include routes and markers
+    if ((markers.length > 0 || routes.length > 0) && map.current) {
+      const allFeatures = [...markersRef.current, ...routesRef.current];
+      if (allFeatures.length > 0) {
+        const group = new L.FeatureGroup(allFeatures);
+        map.current.fitBounds(group.getBounds().pad(0.1));
+      }
+    }
+  }, [routes, markers.length]);
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${className}`}>
